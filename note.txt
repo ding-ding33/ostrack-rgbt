@@ -1,0 +1,6 @@
+CUDA_VISIBLE_DEVICES=3  NCCL_P2P_LEVEL=NVL nohup  python tracking/train.py --script bat --config rgbt --save_dir ./output --mode multiple --nproc_per_node 1 >train_log/train_tracking0716.log&
+
+fuser -v /dev/nvidia5 |awk '{for(i=1;i<=NF;i++)print "kill -9 " $i;}' | sh  #清空所有进程
+
+ps -aux | grep {KeyWords} | grep -v grep | awk '{print $2}' | xargs kill -9
+

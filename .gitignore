@@ -1,0 +1,14 @@
+# 1. 全局封杀权重和各种巨无霸文件
+*.pth
+*.pth.tar
+*.pt
+*tfevents*
+data/
+pretrained/
+__pycache__/
+.vscode/
+# 2. 针对 output：千万不要写整个 "output/"！
+# 只单独忽略 output 下面存放权重的 checkpoints 文件夹
+output/checkpoints/
+
+# 这样，留在 output 根目录下或者其他地方的 train.log 就会被 Git 自动抓取
