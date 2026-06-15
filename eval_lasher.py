@@ -9,7 +9,7 @@ LasHeR have 3 benchmarks: PR, NPR, SR
 # Register your tracker
 lasher(
     tracker_name="tracker2",
-    result_path="RGBT_workspace/results/LasHeR/rgbt",
+    result_path="RGBT_workspace/results/LasHeR/rgbt40",
     bbox_type="ltwh")
 # lasher(
 #     tracker_name="tracker2",
