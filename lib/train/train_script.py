@@ -46,16 +46,22 @@ def run(settings):
     settings.log_file = os.path.join(log_dir, "%s-%s.log" % (settings.script_name, settings.config_name))
 
     # Build dataloaders
+    print("=> Building dataloaders...", flush=True)
     loader_train, loader_val = build_dataloaders(cfg, settings)
+    print("=> Dataloaders built successfully.", flush=True)
 
     # Create network
+    print("=> Building network...", flush=True)
     if settings.script_name == "bat":
         net = build_batrack(cfg)
     else:
         raise ValueError("illegal script name")
+    print("=> Network built successfully.", flush=True)
 
     # wrap networks to distributed one
+    print("=> Moving network to GPU...", flush=True)
     net.cuda()
+    print("=> Network moved to GPU successfully.", flush=True)
     if settings.local_rank != -1:
         # net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(net)  # add syncBN converter
         net = DDP(net, device_ids=[settings.local_rank], find_unused_parameters=True)
@@ -66,6 +72,7 @@ def run(settings):
     settings.distill = getattr(cfg.TRAIN, "DISTILL", False)
     settings.distill_loss_type = getattr(cfg.TRAIN, "DISTILL_LOSS_TYPE", "KL")
     # Loss functions and Actors
+    print("=> Creating loss functions and Actor...", flush=True)
     if settings.script_name == "bat":
         # here cls loss and cls weight are not use
         focal_loss = FocalLoss()
@@ -74,9 +81,12 @@ def run(settings):
         actor = BATActor(net=net, objective=objective, loss_weight=loss_weight, settings=settings, cfg=cfg)
     else:
         raise ValueError("illegal script name")
+    print("=> Loss functions and Actor created.", flush=True)
 
     # Optimizer, parameters, and learning rates
+    print("=> Creating optimizer and scheduler...", flush=True)
     optimizer, lr_scheduler = get_optimizer_scheduler(net, cfg)
+    print("=> Optimizer and scheduler created successfully.", flush=True)
     use_amp = getattr(cfg.TRAIN, "AMP", False)
     settings.save_epoch_interval = getattr(cfg.TRAIN, "SAVE_EPOCH_INTERVAL", 1)
     settings.save_last_n_epoch = getattr(cfg.TRAIN, "SAVE_LAST_N_EPOCH", 1)
