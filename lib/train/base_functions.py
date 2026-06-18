@@ -242,10 +242,6 @@ def get_optimizer_scheduler(net, cfg):
     return _build_optimizer_scheduler(param_dicts, cfg)
 
 
-def _build_optimizer_scheduler(param_dicts, cfg):
-
-    return _build_optimizer_scheduler(param_dicts, cfg)
-
 
 def _build_optimizer_scheduler(param_dicts, cfg):
     if cfg.TRAIN.OPTIMIZER == "ADAMW":
