@@ -201,6 +201,7 @@ class BATrack(nn.Module):
 
 
 def build_batrack(cfg, training=True):
+    print("=> [build_batrack] Starting...", flush=True)
     current_dir = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
     pretrained_path = os.path.join(current_dir, '../../../pretrained_models')  # use pretrained OSTrack as initialization
     
@@ -209,6 +210,7 @@ def build_batrack(cfg, training=True):
     else:
         pretrained = ''
 
+    print("=> [build_batrack] building backbone (type: {})...".format(cfg.MODEL.BACKBONE.TYPE), flush=True)
     if cfg.MODEL.BACKBONE.TYPE == 'vit_base_patch16_224_adapter':
         backbone = vit_base_patch16_224_adapter(pretrained, drop_path_rate=cfg.TRAIN.DROP_PATH_RATE,
                                                search_size=to_2tuple(cfg.DATA.SEARCH.SIZE),
@@ -238,10 +240,11 @@ def build_batrack(cfg, training=True):
 
     else:
         raise NotImplementedError
-    """For adapter no need, because we have OSTrack as initialization"""
-    # backbone.finetune_track(cfg=cfg, patch_start_index=patch_start_index)
+    print("=> [build_batrack] backbone built successfully.", flush=True)
 
+    print("=> [build_batrack] building box head...", flush=True)
     box_head = build_box_head(cfg, hidden_dim)
+    print("=> [build_batrack] box head built successfully.", flush=True)
     
     use_moe = True
 
@@ -252,10 +255,13 @@ def build_batrack(cfg, training=True):
         head_type=cfg.MODEL.HEAD.TYPE,
     )
     if training and ('OSTrack' in cfg.MODEL.PRETRAIN_FILE or 'DropTrack' in cfg.MODEL.PRETRAIN_FILE):
+        print("=> [build_batrack] loading pretrained weights from: {} ...".format(cfg.MODEL.PRETRAIN_FILE), flush=True)
         checkpoint = torch.load(cfg.MODEL.PRETRAIN_FILE, map_location="cpu")
+        print("=> [build_batrack] pretrained weights loaded successfully.", flush=True)
         param_dict_rgbt = dict()
 
         if 'DropTrack' in cfg.MODEL.PRETRAIN_FILE:
+            print("=> [build_batrack] processing DropTrack weights...", flush=True)
             for k,v in checkpoint["net"].items():
                 if use_moe:
                     if k in ['box_head.conv1_ctr.0.weight','box_head.conv1_offset.0.weight','box_head.conv1_size.0.weight']:
@@ -282,8 +288,10 @@ def build_batrack(cfg, training=True):
 
                 param_dict_rgbt[k] = v
 
+            print("=> [build_batrack] loading state dict into model...", flush=True)
             missing_keys, unexpected_keys = model.load_state_dict(param_dict_rgbt, strict=False)
         else:
+            print("=> [build_batrack] loading state dict into model (non-DropTrack)...", flush=True)
             missing_keys, unexpected_keys = model.load_state_dict(checkpoint["net"], strict=False)
         print('Load pretrained model from: ' + cfg.MODEL.PRETRAIN_FILE)
         print(f"missing_keys: {missing_keys}")
