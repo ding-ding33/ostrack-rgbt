@@ -1,7 +1,7 @@
 # test lasher
 #CUDA_VISIBLE_DEVICES=1 NCCL_P2P_LEVEL=NVL python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name LasHeR --yaml_name rgbt
-#CUDA_VISIBLE_DEVICES=1 python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name LasHeR --yaml_name rgbt --epoch 40
-CUDA_VISIBLE_DEVICES=1 python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name LasHeR --yaml_name rgbt --epoch 40 --threads 1 --mode sequential --video 10runone
+CUDA_VISIBLE_DEVICES=1 python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name LasHeR --yaml_name rgbt --epoch 40
+#CUDA_VISIBLE_DEVICES=1 python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name LasHeR --yaml_name rgbt --epoch 40 --threads 1 --mode sequential --video 10runone
 # test rgbt234
 # CUDA_VISIBLE_DEVICES=0 NCCL_P2P_LEVEL=NVL python ./RGBT_workspace/test_rgbt_mgpus.py --script_name bat --dataset_name RGBT234 --yaml_name rgbt 
 
