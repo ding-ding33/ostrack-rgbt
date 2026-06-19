@@ -76,7 +76,7 @@ TRAIN:
   FIX_BN: true           #true   #false                    #=============================
   SAVE_EPOCH_INTERVAL: 5
   SAVE_LAST_N_EPOCH: 1
-  LOCAL_FINETUNE: true
+  LOCAL_FINETUNE: false
   LOCAL_FINETUNE_KEYS:
   - rgb_iqa_adapter
   - dte_iqa_adapter

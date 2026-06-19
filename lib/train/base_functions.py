@@ -225,9 +225,9 @@ def get_optimizer_scheduler(net, cfg):
     else:
         param_dicts = [
 
-            {"params": [p for n, p in net.named_parameters() if "adap"  in n and p.requires_grad or "head"  in n and p.requires_grad]},
+            {"params": [p for n, p in net.named_parameters() if ("adap" in n or "head" in n or "repair" in n) and p.requires_grad]},
             {
-                "params": [p for n, p in net.named_parameters() if "adap" not in n and p.requires_grad and  "head" not in n and p.requires_grad],
+                "params": [p for n, p in net.named_parameters() if "adap" not in n and "head" not in n and "repair" not in n and p.requires_grad],
                 "lr": cfg.TRAIN.LR * cfg.TRAIN.BACKBONE_MULTIPLIER,
             },
 
