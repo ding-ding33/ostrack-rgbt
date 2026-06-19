@@ -31,8 +31,6 @@ cfg.MODEL.BACKBONE.CE_TEMPLATE_RANGE = 'ALL'  # choose between ALL, CTR_POINT, C
 cfg.MODEL.BACKBONE.ENABLE_MODALITY_REPAIR = False
 cfg.MODEL.BACKBONE.REPAIR_NUM_LAYERS = 2
 cfg.MODEL.BACKBONE.IQA_THRESHOLD = 0.4
-cfg.MODEL.BACKBONE.VIB_REDUCTION = 8
-cfg.MODEL.BACKBONE.VIB_BETA = 0.001
 
 # MODEL.HEAD
 cfg.MODEL.HEAD = edict()
@@ -71,9 +69,8 @@ cfg.TRAIN.LOCAL_FINETUNE = False
 cfg.TRAIN.LOCAL_FINETUNE_KEYS = [
     'rgb_iqa_adapter',
     'dte_iqa_adapter',
-    'rgb_vib_purifier',
-    'dte_vib_purifier',
     'cross_attn_repair',
+    'cross_attn_repair_out',
 ]
 
 # TRAIN.SCHEDULER

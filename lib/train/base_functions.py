@@ -175,9 +175,8 @@ def get_optimizer_scheduler(net, cfg):
     local_finetune_keys = getattr(cfg.TRAIN, "LOCAL_FINETUNE_KEYS", [
         "rgb_iqa_adapter",
         "dte_iqa_adapter",
-        "rgb_vib_purifier",
-        "dte_vib_purifier",
         "cross_attn_repair",
+        "cross_attn_repair_out",
     ])
 
     if local_finetune:

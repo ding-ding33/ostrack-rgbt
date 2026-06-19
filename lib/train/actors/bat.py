@@ -243,11 +243,6 @@ class BATActor(BaseActor):
         # weighted sum
         loss = self.loss_weight['giou'] * giou_loss + self.loss_weight['l1'] * l1_loss + self.loss_weight['focal'] * location_loss
 
-        # add VIB KL loss if modality repair is enabled
-        vib_kl = pred_dict.get('vib_kl_loss', torch.zeros((), device=l1_loss.device, dtype=l1_loss.dtype))
-        if vib_kl is not None and vib_kl.item() != 0.0:
-            loss = loss + vib_kl
-
         if return_status:
             # status for log
             mean_iou = iou.detach().mean()
@@ -258,24 +253,15 @@ class BATActor(BaseActor):
                       "IoU": mean_iou.item(),
                     }
 
-            # ---- modality repair monitoring metrics ----
+            # ---- modality repair monitoring ----
             net = self.net.module if multigpu.is_multi_gpu(self.net) else self.net
             backbone = net.backbone
 
-            rgb_alpha = backbone.rgb_vib_purifier.alpha.detach() if hasattr(backbone, 'rgb_vib_purifier') else torch.tensor(0.0, device=mean_iou.device)
-            dte_alpha = backbone.dte_vib_purifier.alpha.detach() if hasattr(backbone, 'dte_vib_purifier') else torch.tensor(0.0, device=mean_iou.device)
-            repair_alpha = backbone.cross_attn_repair.alpha.detach() if hasattr(backbone, 'cross_attn_repair') else torch.tensor(0.0, device=mean_iou.device)
-
-            # ---- modality repair monitoring ----
-            if vib_kl is not None and vib_kl.item() != 0.0:
-                status["Loss/vib_kl"] = vib_kl.item()
-
-            if hasattr(backbone, 'rgb_vib_purifier'):
-                status["VIB/alpha_rgb"] = rgb_alpha.item()
-                status["VIB/alpha_dte"] = dte_alpha.item()
-
             if hasattr(backbone, 'cross_attn_repair'):
-                status["Repair/alpha"] = repair_alpha.item()
+                status["Repair/in_alpha"] = backbone.cross_attn_repair.alpha.detach().item()
+
+            if hasattr(backbone, 'cross_attn_repair_out'):
+                status["Repair/out_alpha"] = backbone.cross_attn_repair_out.alpha.detach().item()
 
             return loss, status
         else:

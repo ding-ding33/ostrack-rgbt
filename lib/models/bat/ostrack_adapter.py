@@ -117,14 +117,6 @@ class BATrack(nn.Module):
         out = self.forward_head(feat_last, None)
         out.update(aux_dict)
         out['backbone_feat'] = x
-        # VIB KL loss: pass through for the actor to include in total loss
-        vib_kl = aux_dict.get('vib_kl_info', None)
-        if vib_kl is not None:
-            out['vib_kl_loss'] = vib_kl.get('total', torch.zeros((), device=x.device, dtype=x.dtype))
-        else:
-            out['vib_kl_loss'] = torch.zeros((), device=x.device, dtype=x.dtype)
-        # if Test is None:
-        #     return out,out_list
         return out
 
     def forward_head(self, cat_feature, gt_score_map=None):
@@ -230,8 +222,6 @@ def build_batrack(cfg, training=True):
                                            new_patch_size=cfg.MODEL.BACKBONE.STRIDE,
                                            adapter_type=cfg.TRAIN.PROMPT.TYPE,
                                            iqa_threshold=getattr(cfg.MODEL.BACKBONE, 'IQA_THRESHOLD', 0.4),
-                                           vib_reduction=getattr(cfg.MODEL.BACKBONE, 'VIB_REDUCTION', 8),
-                                           vib_beta=getattr(cfg.MODEL.BACKBONE, 'VIB_BETA', 0.001),
                                            repair_num_layers=getattr(cfg.MODEL.BACKBONE, 'REPAIR_NUM_LAYERS', 2),
                                            enable_modality_repair=getattr(cfg.MODEL.BACKBONE, 'ENABLE_MODALITY_REPAIR', False)
                                            )

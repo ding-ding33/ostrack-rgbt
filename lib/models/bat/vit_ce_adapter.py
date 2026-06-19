@@ -25,7 +25,7 @@ from ..layers.dualstream_attn_blocks import DSBlock ## Dual Stream without adapt
 
 from lib.models.layers.attn import Attention
 from lib.models.layers.adapter import Bi_direct_adapter
-from lib.models.layers.adapter import LightweightIQA_MLP, VIB_Feature_Purifier, CrossAttnRepair
+from lib.models.layers.adapter import LightweightIQA_MLP, CrossAttnRepair
 
 
 _logger = logging.getLogger(__name__)
@@ -47,8 +47,8 @@ class VisionTransformerCE(VisionTransformer):
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., embed_layer=PatchEmbed, norm_layer=None,
                  act_layer=None, weight_init='', ce_loc=None, ce_keep_ratio=None, search_size=None, template_size=None,
                  new_patch_size=None, adapter_type=None,
-                 iqa_threshold=0.4, vib_reduction=8, vib_beta=0.001,
-                 repair_num_layers=2, enable_modality_repair=False):
+                 iqa_threshold=0.4, repair_num_layers=2,
+                 enable_modality_repair=False):
         """
         Args:
             img_size (int, tuple): input image size
@@ -149,10 +149,10 @@ class VisionTransformerCE(VisionTransformer):
         if self.enable_modality_repair:
             self.rgb_iqa_adapter = LightweightIQA_MLP(embed_dim, reduction=16, act_layer=act_layer)
             self.dte_iqa_adapter = LightweightIQA_MLP(embed_dim, reduction=16, act_layer=act_layer)
-            self.rgb_vib_purifier = VIB_Feature_Purifier(embed_dim, reduction=vib_reduction, beta=vib_beta)
-            self.dte_vib_purifier = VIB_Feature_Purifier(embed_dim, reduction=vib_reduction, beta=vib_beta)
             self.cross_attn_repair = CrossAttnRepair(embed_dim, num_heads=num_heads,
                                                       num_layers=repair_num_layers)
+            self.cross_attn_repair_out = CrossAttnRepair(embed_dim, num_heads=num_heads,
+                                                          num_layers=1)
 
         self.init_weights(weight_init)
 
@@ -165,18 +165,6 @@ class VisionTransformerCE(VisionTransformer):
         return concatenated
 
 
-
-    def _apply_vib_if_needed(self, tokens, iqa_score, purifier):
-        """始终对所有样本施加 VIB 净化，由 ReZero alpha 控制生效程度。"""
-        B = tokens.shape[0]
-        out_list = []
-        kl_total = torch.zeros((), device=tokens.device, dtype=tokens.dtype)
-        for b in range(B):
-            purged, kl = purifier(tokens[b:b + 1])
-            out_list.append(purged)
-            kl_total = kl_total + kl
-        kl_total = kl_total / B
-        return torch.cat(out_list, dim=0), kl_total
 
     def _apply_repair_if_needed(self, rgb_tokens, dte_tokens,
                                  rgb_z_score, dte_z_score,
@@ -322,9 +310,8 @@ class VisionTransformerCE(VisionTransformer):
             x = x[0].unsqueeze(0)
             xi = xi[0].unsqueeze(0)
 
-        # -------- modality repair: IQA → VIB → cross-attention --------
+        # -------- modality repair: IQA → input Cross-Attention --------
         repair_info = None
-        vib_kl_info = None
         iqa_scores = None
         if self.enable_modality_repair:
             z_iqa = self.rgb_iqa_adapter(z)
@@ -336,11 +323,6 @@ class VisionTransformerCE(VisionTransformer):
             x = x * (2.0 * x_iqa).unsqueeze(1)
             zi = zi * (2.0 * zi_iqa).unsqueeze(1)
             xi = xi * (2.0 * xi_iqa).unsqueeze(1)
-
-            z, kl_z_rgb = self._apply_vib_if_needed(z, z_iqa, self.rgb_vib_purifier)
-            x, kl_x_rgb = self._apply_vib_if_needed(x, x_iqa, self.rgb_vib_purifier)
-            zi, kl_zi_dte = self._apply_vib_if_needed(zi, zi_iqa, self.dte_vib_purifier)
-            xi, kl_xi_dte = self._apply_vib_if_needed(xi, xi_iqa, self.dte_vib_purifier)
 
             lens_z_rep = z.shape[1]
             lens_x_rep = x.shape[1]
@@ -357,11 +339,6 @@ class VisionTransformerCE(VisionTransformer):
             zi = dte_tokens[:, :lens_z_rep]
             xi = dte_tokens[:, lens_z_rep:]
 
-            vib_kl_info = {
-                "rgb": kl_z_rgb + kl_x_rgb,
-                "dte": kl_zi_dte + kl_xi_dte,
-                "total": kl_z_rgb + kl_x_rgb + kl_zi_dte + kl_xi_dte,
-            }
             iqa_scores = {
                 "rgb": {
                     "template": z_iqa,
@@ -482,18 +459,26 @@ class VisionTransformerCE(VisionTransformer):
         # re-concatenate with the template, which may be further used by other modules
         x = torch.cat([z, x], dim=1)
         xi = torch.cat([zi, xi], dim=1)
-        #x = torch.cat([x, xi], dim=0)
 
+        # -------- output-level cross-modal calibration --------
+        if self.enable_modality_repair:
+            lens_z_out = z.shape[1]
+            x_repaired = self.cross_attn_repair_out(x, xi)
+            xi_repaired = self.cross_attn_repair_out(xi, x)
+            x, xi = x_repaired, xi_repaired
+            z = x[:, :lens_z_out]
+            x = x[:, lens_z_out:]
+            zi = xi[:, :lens_z_out]
+            xi = xi[:, lens_z_out:]
 
         x = x + xi
-        B,L,C = x.shape
+        B, L, C = x.shape
 
         dynamic_tokens = None
         aux_dict = {
             "attn": attn,
             "t_weights": None,
-            "removed_indexes_s": removed_indexes_s,  # used for visualization
-            "vib_kl_info": vib_kl_info,
+            "removed_indexes_s": removed_indexes_s,
             "iqa_scores": iqa_scores,
             "repair_info": repair_info,
         }

@@ -80,9 +80,8 @@ TRAIN:
   LOCAL_FINETUNE_KEYS:
   - rgb_iqa_adapter
   - dte_iqa_adapter
-  - rgb_vib_purifier
-  - dte_vib_purifier
   - cross_attn_repair
+  - cross_attn_repair_out
 TEST:
   EPOCH: 60
   SEARCH_FACTOR: 4.0
